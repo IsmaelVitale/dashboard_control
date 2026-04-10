@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Logística - Zara</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            background: #09090b;
+            color: #ffffff;
+            font-family: 'Segoe UI', system-ui;
+            overflow: hidden;
+        }
+
+        /* Base fixa estilo TV */
+        #dashboard-root {
+            width: 1920px;
+            height: 1080px;
+            transform-origin: top left;
+            transition: filter 0.3s ease; /* Transição suave para o blur */
+        }
+
+        /* Cards */
+        .card {
+            background: #18181b;
+            border: 1px solid #27272a;
+            border-radius: 16px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Header */
+        .card-header {
+            color: #a1a1aa;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 1.2rem;
+            letter-spacing: 2px;
+        }
+
+        /* Textos */
+        .texto-gigante {
+            font-size: clamp(2.5rem, 4vw, 4.5rem);
+            font-weight: 800;
+        }
+        .texto-medio {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        /* Blur background when modal is open */
+        .blur-bg {
+            filter: blur(8px);
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body>
+
+<!-- MODAL INICIAL (SETUP DE DADOS) -->
+<div id="setupModal" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm transition-opacity duration-300">
+    <div class="bg-[#18181b] border border-[#27272a] rounded-2xl p-8 max-w-lg w-full flex flex-col items-center gap-6 shadow-2xl">
+
+        <div class="bg-[#27272a] p-4 rounded-full">
+            <!-- Ícone de Upload -->
+            <svg class="w-10 h-10 text-[#00E5FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+            </svg>
+        </div>
+
+        <div class="text-center">
+            <h2 class="text-2xl font-bold text-white mb-2">Setup do Dashboard</h2>
+            <p class="text-[#a1a1aa]">Nenhum dado encontrado. Por favor, carregue os arquivos <span class="text-[#00E5FF] font-semibold">meta.json</span> e <span class="text-[#00E5FF] font-semibold">zh-BANCADAS.csv</span> para iniciar.</p>
+        </div>
+
+        <label class="w-full bg-[#0ea5e9] hover:bg-[#0284c7] text-white font-bold py-3 px-6 rounded-xl cursor-pointer transition-colors flex items-center justify-center gap-2 shadow-lg">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            Selecionar Arquivos
+            <input type="file" id="fileInputModal" accept=".csv, .json" multiple class="hidden">
+        </label>
+    </div>
+</div>
+
+<!-- PAINEL DE CONTROLE FLUTUANTE (Canto Superior Direito) -->
+<div class="fixed top-4 right-4 z-50 flex gap-3 opacity-20 hover:opacity-100 transition-opacity duration-300" id="controlPanel">
+
+    <label class="bg-[#18181b] border border-[#27272a] hover:bg-[#27272a] cursor-pointer text-[#a1a1aa] hover:text-white px-4 py-2 rounded-lg font-semibold transition-all flex items-center gap-2 shadow-lg">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+        Atualizar Dados
+        <input type="file" id="fileInputHeader" accept=".csv, .json" multiple class="hidden">
+    </label>
+
+    <button onclick="toggleFullscreen()" class="bg-[#18181b] border border-[#27272a] hover:bg-[#27272a] text-[#a1a1aa] hover:text-white px-4 py-2 rounded-lg font-semibold transition-all flex items-center gap-2 shadow-lg">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path></svg>
+        Tela Cheia
+    </button>
+</div>
+
+<!-- CONTAINER PRINCIPAL DO DASHBOARD -->
+<div id="dashboard-root" class="blur-bg">
+
+    <div class="h-full w-full p-4 grid grid-rows-[45%_1fr] gap-4">
+
+        <!-- TOPO -->
+        <div class="grid grid-cols-2 gap-4">
+
+            <!-- ESQUERDA -->
+            <div class="grid grid-cols-2 gap-4">
+
+                <!-- PRODUÇÃO -->
+                <div class="card">
+                    <div class="card-header">PRODUÇÃO</div>
+                    <div class="relative flex-1">
+                        <canvas id="chartProd"></canvas>
+                        <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none mt-2">
+                            <span id="real" class="texto-gigante text-white">0</span>
+                            <span id="meta" class="texto-medio text-gray-400">/ 0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BACKLOG -->
+                <div class="card">
+                    <div class="card-header">BACKLOG</div>
+                    <div class="relative flex-1">
+                        <canvas id="chartBacklog"></canvas>
+                        <div class="absolute inset-0 flex items-center justify-center pointer-events-none mt-2">
+                            <span id="backlog" class="texto-gigante text-[#E040FB]">0</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- TURNOS -->
+            <div class="card">
+                <div class="card-header">TURNOS</div>
+                <div class="flex-1">
+                    <canvas id="chartTurnos"></canvas>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- BAIXO -->
+        <div class="card">
+            <div class="card-header">HORÁRIO</div>
+            <div class="flex-1">
+                <canvas id="chartHoras"></canvas>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    Chart.register(ChartDataLabels);
+    Chart.defaults.color = '#a1a1aa';
+    Chart.defaults.font.family = "'Segoe UI', sans-serif";
+
+    // ================= ESTADO ZERADO (Sem Hardcode) =================
+    let metaTotal = 0;
+    let backlog = 0;
+
+    // Mantemos os eixos padrão de horas da Zara para o gráfico não quebrar, mas com dados zerados
+    let horasChaves = ["6-7h", "7-8h", "8-9h", "9-10h", "10-11h", "11-12h", "12-13h", "13-14h", "14-15h", "15-16h", "16-17h", "17-18h", "18-19h", "19-20h", "20-21h", "21-22h"];
+    let metas = new Array(horasChaves.length).fill(0);
+    let realizado = new Array(horasChaves.length).fill(0);
+
+    // Cores Neon
+    const verde = '#00E676';
+    const vermelho = '#FF3D00';
+    const azul = '#00E5FF';
+    const cinza = '#27272a'; // Cinza da borda para estado vazio
+    const fucsia = '#E040FB';
+
+    // ================= INSTANCIANDO GRÁFICOS VAZIOS =================
+
+    let chartProd = new Chart(document.getElementById('chartProd'), {
+        type: 'doughnut',
+        data: { datasets: [{ data: [0, 1], backgroundColor: [verde, cinza], cutout: '80%', borderWidth: 0 }] },
+        options: { responsive:true, maintainAspectRatio:false, plugins: { datalabels: { display: false }, tooltip: { enabled: false } } }
+    });
+
+    let chartBacklog = new Chart(document.getElementById('chartBacklog'), {
+        type: 'doughnut',
+        data: { datasets: [{ data: [0, 1], backgroundColor: [fucsia, cinza], cutout: '80%', borderWidth: 0 }] },
+        options: { responsive:true, maintainAspectRatio:false, plugins: { datalabels: { display: false }, tooltip: { enabled: false } } }
+    });
+
+    let chartTurnos = new Chart(document.getElementById('chartTurnos'), {
+        type: 'bar',
+        data: {
+            labels:['T1 (06-14h)', 'T2 (14-22h)'],
+            datasets:[
+                { label: 'Meta', data: [0, 0], backgroundColor: azul+'40', barPercentage: 0.8, categoryPercentage: 0.5, borderRadius: 4 },
+                { label: 'Real', data: [0, 0], backgroundColor: [cinza, cinza], barPercentage: 0.8, categoryPercentage: 0.5, borderRadius: 4 }
+            ]
+        },
+        options:{
+            indexAxis:'y', responsive:true, maintainAspectRatio:false,
+            layout: { padding: { right: 50 } },
+            scales: { x: { display: false }, y: { grid: { display: false }, ticks: { font: { size: 16, weight: 'bold' }, color: '#fff' } } },
+            plugins: {
+                legend: { display: false },
+                datalabels: { anchor: 'end', align: 'right', color: '#fff', font: { weight: 'bold', size: 16 }, formatter: v => v===0 ? '' : Math.round(v) }
+            }
+        }
+    });
+
+    let chartHoras = new Chart(document.getElementById('chartHoras'), {
+        type: 'bar',
+        data: {
+            labels: horasChaves,
+            datasets:[
+                { label: 'Meta', data: metas, backgroundColor: azul+'33', borderColor: azul, borderWidth: 1, borderRadius: 4 },
+                { label: 'Real', data: realizado, backgroundColor: cinza, borderRadius: 4 }
+            ]
+        },
+        options:{
+            responsive:true, maintainAspectRatio:false,
+            layout: { padding: { top: 30 } },
+            scales: { y: { display: false }, x: { grid: { display: false }, ticks: { font: { size: 14 } } } },
+            plugins:{
+                legend: { display: false },
+                datalabels: {
+                    anchor: 'end', align: 'top', offset: 4, font: { weight: 'bold', size: 16 },
+                    color: (ctx) => ctx.datasetIndex === 0 ? azul : '#ffffff',
+                    formatter: (v, ctx) => (ctx.datasetIndex === 1 && v === 0) ? '' : (v===0 ? '' : Math.round(v))
+                }
+            }
+        }
+    });
+
+    // ================= FUNÇÃO CENTRAL DE ATUALIZAÇÃO =================
+    function atualizarDashboard() {
+        const totalRealizado = realizado.reduce((a,b) => a+b, 0);
+
+        // Atualiza Textos
+        document.getElementById('real').innerText = totalRealizado;
+        document.getElementById('meta').innerText = "/ " + metaTotal;
+        document.getElementById('backlog').innerText = backlog;
+
+        // Atualiza Prod (Evita gráfico quebrado se metaTotal for 0)
+        let restante = Math.max(0, metaTotal - totalRealizado);
+        if(metaTotal === 0 && totalRealizado === 0) restante = 1; // Mantém anel cinza
+        chartProd.data.datasets[0].data = [totalRealizado, restante];
+        chartProd.data.datasets[0].backgroundColor = [verde, cinza];
+        chartProd.update();
+
+        // Atualiza Backlog
+        chartBacklog.data.datasets[0].data = [backlog, backlog === 0 ? 1 : 0]; // Se 0, pinta de cinza
+        chartBacklog.data.datasets[0].backgroundColor = [fucsia, cinza];
+        chartBacklog.update();
+
+        // Atualiza Turnos
+        const metaT1 = metas.slice(0, 8).reduce((a,b)=>a+b,0);
+        const realT1 = realizado.slice(0, 8).reduce((a,b)=>a+b,0);
+        const metaT2 = metas.slice(8, 16).reduce((a,b)=>a+b,0);
+        const realT2 = realizado.slice(8, 16).reduce((a,b)=>a+b,0);
+
+        chartTurnos.data.datasets[0].data = [metaT1, metaT2];
+        chartTurnos.data.datasets[1].data = [realT1, realT2];
+        chartTurnos.data.datasets[1].backgroundColor = [
+            realT1 >= metaT1 && metaT1 > 0 ? verde : (realT1 > 0 ? vermelho : cinza),
+            realT2 >= metaT2 && metaT2 > 0 ? verde : (realT2 > 0 ? vermelho : cinza)
+        ];
+        chartTurnos.update();
+
+        // Atualiza Horas
+        const coresRealizado = realizado.map((v, i) => {
+            if (v === 0) return cinza;
+            return v >= metas[i] ? verde : vermelho;
+        });
+
+        const ultimaHoraAtiva = realizado.findLastIndex(v => v > 0);
+        chartHoras.options.plugins.datalabels.formatter = (v, ctx) => {
+            if (ctx.datasetIndex === 1 && v === 0) return '';
+            if (ctx.datasetIndex === 0 && ctx.dataIndex > (ultimaHoraAtiva + 1)) return '';
+            return Math.round(v);
+        };
+
+        chartHoras.data.labels = horasChaves;
+        chartHoras.data.datasets[0].data = metas;
+        chartHoras.data.datasets[1].data = realizado;
+        chartHoras.data.datasets[1].backgroundColor = coresRealizado;
+        chartHoras.update();
+
+        // Remove o Modal de Setup e o Blur se os dados foram carregados
+        if(metaTotal > 0) {
+            document.getElementById('setupModal').classList.add('hidden');
+            document.getElementById('dashboard-root').classList.remove('blur-bg');
+            document.getElementById('controlPanel').classList.remove('hidden'); // Mostra os botões do topo
+        }
+    }
+
+    // Chama a primeira vez para desenhar a estrutura zerada no fundo
+    atualizarDashboard();
+    // Esconde os botões do canto se o modal inicial está aberto
+    document.getElementById('controlPanel').classList.add('hidden');
+
+    // ================= LÓGICA DE UPLOAD (COMPARTILHADA) =================
+    async function processarArquivos(e) {
+        const files = e.target.files;
+        if (!files.length) return;
+
+        let jsonCarregado = false;
+        let csvCarregado = false;
+
+        for (let file of files) {
+            const texto = await file.text();
+
+            if (file.name.toLowerCase().endsWith('.json')) {
+                try {
+                    const data = JSON.parse(texto);
+                    if(data.metaTotalDia) metaTotal = data.metaTotalDia;
+                    if(data.baclog && data.baclog.length) backlog = data.baclog[0];
+                    if(data.distribuicaoPercentual) {
+                        horasChaves = Object.keys(data.distribuicaoPercentual);
+                        metas = horasChaves.map(h => metaTotal * data.distribuicaoPercentual[h]);
+                    }
+                    jsonCarregado = true;
+                } catch(err) { alert("Erro ao ler JSON: " + err); }
+            }
+            else if (file.name.toLowerCase().endsWith('.csv')) {
+                const limpo = texto.replace(/"/g, '');
+                const linhas = limpo.trim().split(/\r?\n/);
+                const cabecalho = linhas[0].split(';');
+
+                realizado = new Array(horasChaves.length).fill(0);
+
+                for (let i = 1; i < linhas.length; i++) {
+                    const colunas = linhas[i].split(';');
+                    horasChaves.forEach((hora, index) => {
+                        const colIndex = cabecalho.indexOf(hora);
+                        if (colIndex !== -1) {
+                            realizado[index] += parseInt(colunas[colIndex]) || 0;
+                        }
+                    });
+                }
+                csvCarregado = true;
+            }
+        }
+
+        atualizarDashboard();
+        e.target.value = ''; // Reseta input
+    }
+
+    // Vinculando o evento aos dois inputs (Modal e Header)
+    document.getElementById('fileInputModal').addEventListener('change', processarArquivos);
+    document.getElementById('fileInputHeader').addEventListener('change', processarArquivos);
+
+    // ================= SCALE E FULLSCREEN =================
+    function ajustarEscala(){
+        const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+        document.getElementById('dashboard-root').style.transform = `scale(${scale})`;
+    }
+    window.addEventListener('resize', ajustarEscala);
+    window.addEventListener('load', ajustarEscala);
+
+    function toggleFullscreen() {
+        if (!document.fullscreenElement) { document.documentElement.requestFullscreen(); }
+        else { document.exitFullscreen(); }
+    }
+</script>
+
+</body>
+</html>
