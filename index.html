@@ -57,7 +57,7 @@
             font-size: 1.5rem;
             font-weight: 700;
         }
-
+        
         /* Blur background when modal is open */
         .blur-bg {
             filter: blur(8px);
@@ -71,7 +71,7 @@
 <!-- MODAL INICIAL (SETUP DE DADOS) -->
 <div id="setupModal" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm transition-opacity duration-300">
     <div class="bg-[#18181b] border border-[#27272a] rounded-2xl p-8 max-w-lg w-full flex flex-col items-center gap-6 shadow-2xl">
-
+        
         <div class="bg-[#27272a] p-4 rounded-full">
             <!-- Ícone de Upload -->
             <svg class="w-10 h-10 text-[#00E5FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -81,7 +81,7 @@
 
         <div class="text-center">
             <h2 class="text-2xl font-bold text-white mb-2">Setup do Dashboard</h2>
-            <p class="text-[#a1a1aa]">Nenhum dado encontrado. Por favor, carregue os arquivos <span class="text-[#00E5FF] font-semibold">meta.json</span> e <span class="text-[#00E5FF] font-semibold">zh-BANCADAS.csv</span> para iniciar.</p>
+            <p class="text-[#a1a1aa]">Nenhum dado encontrado. Por favor, carregue os arquivos <span class="text-[#00E5FF] font-semibold">meta.json</span>, <span class="text-[#00E5FF] font-semibold">zh-BANCADAS.csv</span> e <span class="text-[#00E5FF] font-semibold">zsur-BANCADAS.csv</span> para iniciar.</p>
         </div>
 
         <label class="w-full bg-[#0ea5e9] hover:bg-[#0284c7] text-white font-bold py-3 px-6 rounded-xl cursor-pointer transition-colors flex items-center justify-center gap-2 shadow-lg">
@@ -94,7 +94,7 @@
 
 <!-- PAINEL DE CONTROLE FLUTUANTE (Canto Superior Direito) -->
 <div class="fixed top-4 right-4 z-50 flex gap-3 opacity-20 hover:opacity-100 transition-opacity duration-300" id="controlPanel">
-
+    
     <label class="bg-[#18181b] border border-[#27272a] hover:bg-[#27272a] cursor-pointer text-[#a1a1aa] hover:text-white px-4 py-2 rounded-lg font-semibold transition-all flex items-center gap-2 shadow-lg">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
         Atualizar Dados
@@ -132,7 +132,7 @@
 
                 <!-- BACKLOG -->
                 <div class="card">
-                    <div class="card-header">PEÇAS PENDENTES</div>
+                    <div class="card-header">BACKLOG</div>
                     <div class="relative flex-1">
                         <canvas id="chartBacklog"></canvas>
                         <div class="absolute inset-0 flex items-center justify-center pointer-events-none mt-2">
@@ -166,17 +166,20 @@
 
 <script>
     Chart.register(ChartDataLabels);
-    Chart.defaults.color = '#a1a1aa';
+    Chart.defaults.color = '#a1a1aa'; 
     Chart.defaults.font.family = "'Segoe UI', sans-serif";
 
     // ================= ESTADO ZERADO (Sem Hardcode) =================
     let metaTotal = 0;
     let backlog = 0;
-
+    
     // Mantemos os eixos padrão de horas da Zara para o gráfico não quebrar, mas com dados zerados
     let horasChaves = ["6-7h", "7-8h", "8-9h", "9-10h", "10-11h", "11-12h", "12-13h", "13-14h", "14-15h", "15-16h", "16-17h", "17-18h", "18-19h", "19-20h", "20-21h", "21-22h"];
     let metas = new Array(horasChaves.length).fill(0);
     let realizado = new Array(horasChaves.length).fill(0);
+
+    // Variável para acumular os dados de múltiplos CSVs
+    let dadosArquivosCsv = {};
 
     // Cores Neon
     const verde = '#00E676';
@@ -186,7 +189,7 @@
     const fucsia = '#E040FB';
 
     // ================= INSTANCIANDO GRÁFICOS VAZIOS =================
-
+    
     let chartProd = new Chart(document.getElementById('chartProd'), {
         type: 'doughnut',
         data: { datasets: [{ data: [0, 1], backgroundColor: [verde, cinza], cutout: '80%', borderWidth: 0 }] },
@@ -212,7 +215,7 @@
             indexAxis:'y', responsive:true, maintainAspectRatio:false,
             layout: { padding: { right: 50 } },
             scales: { x: { display: false }, y: { grid: { display: false }, ticks: { font: { size: 16, weight: 'bold' }, color: '#fff' } } },
-            plugins: {
+            plugins: { 
                 legend: { display: false },
                 datalabels: { anchor: 'end', align: 'right', color: '#fff', font: { weight: 'bold', size: 16 }, formatter: v => v===0 ? '' : Math.round(v) }
             }
@@ -283,7 +286,7 @@
             if (v === 0) return cinza;
             return v >= metas[i] ? verde : vermelho;
         });
-
+        
         const ultimaHoraAtiva = realizado.findLastIndex(v => v > 0);
         chartHoras.options.plugins.datalabels.formatter = (v, ctx) => {
             if (ctx.datasetIndex === 1 && v === 0) return '';
@@ -298,7 +301,7 @@
         chartHoras.update();
 
         // Remove o Modal de Setup e o Blur se os dados foram carregados
-        if(metaTotal > 0) {
+        if(metaTotal > 0 || totalRealizado > 0) {
             document.getElementById('setupModal').classList.add('hidden');
             document.getElementById('dashboard-root').classList.remove('blur-bg');
             document.getElementById('controlPanel').classList.remove('hidden'); // Mostra os botões do topo
@@ -308,20 +311,18 @@
     // Chama a primeira vez para desenhar a estrutura zerada no fundo
     atualizarDashboard();
     // Esconde os botões do canto se o modal inicial está aberto
-    document.getElementById('controlPanel').classList.add('hidden');
+    document.getElementById('controlPanel').classList.add('hidden'); 
 
-    // ================= LÓGICA DE UPLOAD (COMPARTILHADA) =================
+    // ================= LÓGICA DE UPLOAD COM SOMA DE ARQUIVOS =================
     async function processarArquivos(e) {
         const files = e.target.files;
         if (!files.length) return;
 
-        let jsonCarregado = false;
-        let csvCarregado = false;
-
         for (let file of files) {
             const texto = await file.text();
-
-            if (file.name.toLowerCase().endsWith('.json')) {
+            const nomeArquivo = file.name.toLowerCase();
+            
+            if (nomeArquivo.endsWith('.json')) {
                 try {
                     const data = JSON.parse(texto);
                     if(data.metaTotalDia) metaTotal = data.metaTotalDia;
@@ -330,31 +331,39 @@
                         horasChaves = Object.keys(data.distribuicaoPercentual);
                         metas = horasChaves.map(h => metaTotal * data.distribuicaoPercentual[h]);
                     }
-                    jsonCarregado = true;
                 } catch(err) { alert("Erro ao ler JSON: " + err); }
-            }
-            else if (file.name.toLowerCase().endsWith('.csv')) {
-                const limpo = texto.replace(/"/g, '');
+            } 
+            else if (nomeArquivo.endsWith('.csv')) {
+                const limpo = texto.replace(/"/g, ''); 
                 const linhas = limpo.trim().split(/\r?\n/);
                 const cabecalho = linhas[0].split(';');
 
-                realizado = new Array(horasChaves.length).fill(0);
+                // Cria ou zera a posição de memória específica deste arquivo (ex: zh ou zsur)
+                dadosArquivosCsv[nomeArquivo] = new Array(horasChaves.length).fill(0);
 
                 for (let i = 1; i < linhas.length; i++) {
                     const colunas = linhas[i].split(';');
                     horasChaves.forEach((hora, index) => {
                         const colIndex = cabecalho.indexOf(hora);
                         if (colIndex !== -1) {
-                            realizado[index] += parseInt(colunas[colIndex]) || 0;
+                            // Soma o valor da coluna específica para este arquivo
+                            dadosArquivosCsv[nomeArquivo][index] += parseInt(colunas[colIndex]) || 0;
                         }
                     });
                 }
-                csvCarregado = true;
+            }
+        }
+        
+        // Agora recalcula o 'realizado' total somando a memória de TODOS os arquivos CSV que já foram enviados
+        realizado = new Array(horasChaves.length).fill(0);
+        for (let arquivo in dadosArquivosCsv) {
+            for (let i = 0; i < horasChaves.length; i++) {
+                realizado[i] += dadosArquivosCsv[arquivo][i];
             }
         }
 
-        atualizarDashboard();
-        e.target.value = ''; // Reseta input
+        atualizarDashboard(); 
+        e.target.value = ''; // Reseta input para permitir clicar de novo
     }
 
     // Vinculando o evento aos dois inputs (Modal e Header)
@@ -370,7 +379,7 @@
     window.addEventListener('load', ajustarEscala);
 
     function toggleFullscreen() {
-        if (!document.fullscreenElement) { document.documentElement.requestFullscreen(); }
+        if (!document.fullscreenElement) { document.documentElement.requestFullscreen(); } 
         else { document.exitFullscreen(); }
     }
 </script>
