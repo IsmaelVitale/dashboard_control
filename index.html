@@ -38,7 +38,7 @@
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
         }
 
-        /* Header */
+        /* Header dos Cards */
         .card-header {
             color: #a1a1aa;
             font-weight: bold;
@@ -57,7 +57,7 @@
             font-size: 1.5rem;
             font-weight: 700;
         }
-        
+
         /* Blur background when modal is open */
         .blur-bg {
             filter: blur(8px);
@@ -71,7 +71,7 @@
 <!-- MODAL INICIAL (SETUP DE DADOS) -->
 <div id="setupModal" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm transition-opacity duration-300">
     <div class="bg-[#18181b] border border-[#27272a] rounded-2xl p-8 max-w-lg w-full flex flex-col items-center gap-6 shadow-2xl">
-        
+
         <div class="bg-[#27272a] p-4 rounded-full">
             <!-- Ícone de Upload -->
             <svg class="w-10 h-10 text-[#00E5FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -81,7 +81,7 @@
 
         <div class="text-center">
             <h2 class="text-2xl font-bold text-white mb-2">Setup do Dashboard</h2>
-            <p class="text-[#a1a1aa]">Nenhum dado encontrado. Por favor, carregue os arquivos <span class="text-[#00E5FF] font-semibold">meta.json</span>, <span class="text-[#00E5FF] font-semibold">zh-BANCADAS.csv</span> e <span class="text-[#00E5FF] font-semibold">zsur-BANCADAS.csv</span> para iniciar.</p>
+            <p class="text-[#a1a1aa]">Nenhum dado encontrado. Por favor, carregue os arquivos <span class="text-[#00E5FF] font-semibold">meta.json</span> e os arquivos <span class="text-[#00E5FF] font-semibold">CSV</span> para iniciar.</p>
         </div>
 
         <label class="w-full bg-[#0ea5e9] hover:bg-[#0284c7] text-white font-bold py-3 px-6 rounded-xl cursor-pointer transition-colors flex items-center justify-center gap-2 shadow-lg">
@@ -94,7 +94,7 @@
 
 <!-- PAINEL DE CONTROLE FLUTUANTE (Canto Superior Direito) -->
 <div class="fixed top-4 right-4 z-50 flex gap-3 opacity-20 hover:opacity-100 transition-opacity duration-300" id="controlPanel">
-    
+
     <label class="bg-[#18181b] border border-[#27272a] hover:bg-[#27272a] cursor-pointer text-[#a1a1aa] hover:text-white px-4 py-2 rounded-lg font-semibold transition-all flex items-center gap-2 shadow-lg">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
         Atualizar Dados
@@ -110,10 +110,16 @@
 <!-- CONTAINER PRINCIPAL DO DASHBOARD -->
 <div id="dashboard-root" class="blur-bg">
 
-    <div class="h-full w-full p-4 grid grid-rows-[45%_1fr] gap-4">
+    <div class="h-full w-full p-4 flex flex-col gap-4">
+
+        <!-- CABEÇALHO COM RELÓGIO -->
+        <div class="flex justify-between items-center px-4 shrink-0">
+            <h1 class="text-2xl font-bold text-[#a1a1aa] uppercase tracking-widest">Painel Logístico - Zara</h1>
+            <div id="clock" class="text-4xl font-bold text-white tracking-widest font-mono">00:00:00</div>
+        </div>
 
         <!-- TOPO -->
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-2 gap-4 h-[42%] shrink-0">
 
             <!-- ESQUERDA -->
             <div class="grid grid-cols-2 gap-4">
@@ -130,13 +136,14 @@
                     </div>
                 </div>
 
-                <!-- BACKLOG -->
+                <!-- PEÇAS PENDENTES (Ex-Backlog) -->
                 <div class="card">
-                    <div class="card-header">BACKLOG</div>
+                    <div class="card-header">PEÇAS PENDENTES</div>
                     <div class="relative flex-1">
                         <canvas id="chartBacklog"></canvas>
                         <div class="absolute inset-0 flex items-center justify-center pointer-events-none mt-2">
-                            <span id="backlog" class="texto-gigante text-[#E040FB]">0</span>
+                            <!-- Cor alterada para white (branco) -->
+                            <span id="backlog" class="texto-gigante text-white">0</span>
                         </div>
                     </div>
                 </div>
@@ -154,7 +161,7 @@
         </div>
 
         <!-- BAIXO -->
-        <div class="card">
+        <div class="card flex-1">
             <div class="card-header">HORÁRIO</div>
             <div class="flex-1">
                 <canvas id="chartHoras"></canvas>
@@ -166,13 +173,21 @@
 
 <script>
     Chart.register(ChartDataLabels);
-    Chart.defaults.color = '#a1a1aa'; 
+    Chart.defaults.color = '#a1a1aa';
     Chart.defaults.font.family = "'Segoe UI', sans-serif";
+
+    // ================= RELÓGIO EM TEMPO REAL =================
+    function updateClock() {
+        const now = new Date();
+        document.getElementById('clock').innerText = now.toLocaleTimeString('pt-BR');
+    }
+    setInterval(updateClock, 1000);
+    updateClock(); // Chama imediatamente para não esperar 1 segundo
 
     // ================= ESTADO ZERADO (Sem Hardcode) =================
     let metaTotal = 0;
     let backlog = 0;
-    
+
     // Mantemos os eixos padrão de horas da Zara para o gráfico não quebrar, mas com dados zerados
     let horasChaves = ["6-7h", "7-8h", "8-9h", "9-10h", "10-11h", "11-12h", "12-13h", "13-14h", "14-15h", "15-16h", "16-17h", "17-18h", "18-19h", "19-20h", "20-21h", "21-22h"];
     let metas = new Array(horasChaves.length).fill(0);
@@ -181,15 +196,16 @@
     // Variável para acumular os dados de múltiplos CSVs
     let dadosArquivosCsv = {};
 
-    // Cores Neon
+    // Cores Neon e Base
     const verde = '#00E676';
     const vermelho = '#FF3D00';
     const azul = '#00E5FF';
-    const cinza = '#27272a'; // Cinza da borda para estado vazio
-    const fucsia = '#E040FB';
+    const cinza = '#27272a';
+    const branco = '#FFFFFF'; // Cor atualizada para as Peças Pendentes
+    const amarelo = '#FFEA00';
 
     // ================= INSTANCIANDO GRÁFICOS VAZIOS =================
-    
+
     let chartProd = new Chart(document.getElementById('chartProd'), {
         type: 'doughnut',
         data: { datasets: [{ data: [0, 1], backgroundColor: [verde, cinza], cutout: '80%', borderWidth: 0 }] },
@@ -198,7 +214,8 @@
 
     let chartBacklog = new Chart(document.getElementById('chartBacklog'), {
         type: 'doughnut',
-        data: { datasets: [{ data: [0, 1], backgroundColor: [fucsia, cinza], cutout: '80%', borderWidth: 0 }] },
+        // Cor do anel substituída para 'branco'
+        data: { datasets: [{ data: [0, 1], backgroundColor: [branco, cinza], cutout: '80%', borderWidth: 0 }] },
         options: { responsive:true, maintainAspectRatio:false, plugins: { datalabels: { display: false }, tooltip: { enabled: false } } }
     });
 
@@ -215,7 +232,7 @@
             indexAxis:'y', responsive:true, maintainAspectRatio:false,
             layout: { padding: { right: 50 } },
             scales: { x: { display: false }, y: { grid: { display: false }, ticks: { font: { size: 16, weight: 'bold' }, color: '#fff' } } },
-            plugins: { 
+            plugins: {
                 legend: { display: false },
                 datalabels: { anchor: 'end', align: 'right', color: '#fff', font: { weight: 'bold', size: 16 }, formatter: v => v===0 ? '' : Math.round(v) }
             }
@@ -255,29 +272,47 @@
         document.getElementById('meta').innerText = "/ " + metaTotal;
         document.getElementById('backlog').innerText = backlog;
 
-        // Atualiza Prod (Evita gráfico quebrado se metaTotal for 0)
+        // Atualiza Prod
         let restante = Math.max(0, metaTotal - totalRealizado);
-        if(metaTotal === 0 && totalRealizado === 0) restante = 1; // Mantém anel cinza
+        if(metaTotal === 0 && totalRealizado === 0) restante = 1;
         chartProd.data.datasets[0].data = [totalRealizado, restante];
         chartProd.data.datasets[0].backgroundColor = [verde, cinza];
         chartProd.update();
 
-        // Atualiza Backlog
-        chartBacklog.data.datasets[0].data = [backlog, backlog === 0 ? 1 : 0]; // Se 0, pinta de cinza
-        chartBacklog.data.datasets[0].backgroundColor = [fucsia, cinza];
+        // Atualiza Peças Pendentes (Ex-Backlog)
+        chartBacklog.data.datasets[0].data = [backlog, backlog === 0 ? 1 : 0];
+        chartBacklog.data.datasets[0].backgroundColor = [branco, cinza];
         chartBacklog.update();
 
-        // Atualiza Turnos
+        // -------------------------------------------------------------
+        // LÓGICA DE TURNOS (VERDE, AMARELO, VERMELHO)
+        // -------------------------------------------------------------
         const metaT1 = metas.slice(0, 8).reduce((a,b)=>a+b,0);
         const realT1 = realizado.slice(0, 8).reduce((a,b)=>a+b,0);
         const metaT2 = metas.slice(8, 16).reduce((a,b)=>a+b,0);
         const realT2 = realizado.slice(8, 16).reduce((a,b)=>a+b,0);
 
+        const horaAtual = new Date().getHours();
+
+        const t1Ativo = horaAtual >= 6 && horaAtual < 14;
+        const t1Passado = horaAtual >= 14;
+
+        const t2Ativo = horaAtual >= 14 && horaAtual < 22;
+        const t2Passado = horaAtual >= 22;
+
+        function getCorTurno(real, meta, isAtivo, isPassado) {
+            if (meta === 0 && real === 0) return cinza;
+            if (real >= meta && meta > 0) return verde;
+            if (isAtivo) return amarelo;
+            if (isPassado) return vermelho;
+            return cinza;
+        }
+
         chartTurnos.data.datasets[0].data = [metaT1, metaT2];
         chartTurnos.data.datasets[1].data = [realT1, realT2];
         chartTurnos.data.datasets[1].backgroundColor = [
-            realT1 >= metaT1 && metaT1 > 0 ? verde : (realT1 > 0 ? vermelho : cinza),
-            realT2 >= metaT2 && metaT2 > 0 ? verde : (realT2 > 0 ? vermelho : cinza)
+            getCorTurno(realT1, metaT1, t1Ativo, t1Passado),
+            getCorTurno(realT2, metaT2, t2Ativo, t2Passado)
         ];
         chartTurnos.update();
 
@@ -286,7 +321,7 @@
             if (v === 0) return cinza;
             return v >= metas[i] ? verde : vermelho;
         });
-        
+
         const ultimaHoraAtiva = realizado.findLastIndex(v => v > 0);
         chartHoras.options.plugins.datalabels.formatter = (v, ctx) => {
             if (ctx.datasetIndex === 1 && v === 0) return '';
@@ -300,20 +335,18 @@
         chartHoras.data.datasets[1].backgroundColor = coresRealizado;
         chartHoras.update();
 
-        // Remove o Modal de Setup e o Blur se os dados foram carregados
+        // Remove o Modal e Blur se dados existirem
         if(metaTotal > 0 || totalRealizado > 0) {
             document.getElementById('setupModal').classList.add('hidden');
             document.getElementById('dashboard-root').classList.remove('blur-bg');
-            document.getElementById('controlPanel').classList.remove('hidden'); // Mostra os botões do topo
+            document.getElementById('controlPanel').classList.remove('hidden');
         }
     }
 
-    // Chama a primeira vez para desenhar a estrutura zerada no fundo
     atualizarDashboard();
-    // Esconde os botões do canto se o modal inicial está aberto
-    document.getElementById('controlPanel').classList.add('hidden'); 
+    document.getElementById('controlPanel').classList.add('hidden');
 
-    // ================= LÓGICA DE UPLOAD COM SOMA DE ARQUIVOS =================
+    // ================= LÓGICA DE UPLOAD E SOMA =================
     async function processarArquivos(e) {
         const files = e.target.files;
         if (!files.length) return;
@@ -321,7 +354,7 @@
         for (let file of files) {
             const texto = await file.text();
             const nomeArquivo = file.name.toLowerCase();
-            
+
             if (nomeArquivo.endsWith('.json')) {
                 try {
                     const data = JSON.parse(texto);
@@ -332,13 +365,12 @@
                         metas = horasChaves.map(h => metaTotal * data.distribuicaoPercentual[h]);
                     }
                 } catch(err) { alert("Erro ao ler JSON: " + err); }
-            } 
+            }
             else if (nomeArquivo.endsWith('.csv')) {
-                const limpo = texto.replace(/"/g, ''); 
+                const limpo = texto.replace(/"/g, '');
                 const linhas = limpo.trim().split(/\r?\n/);
                 const cabecalho = linhas[0].split(';');
 
-                // Cria ou zera a posição de memória específica deste arquivo (ex: zh ou zsur)
                 dadosArquivosCsv[nomeArquivo] = new Array(horasChaves.length).fill(0);
 
                 for (let i = 1; i < linhas.length; i++) {
@@ -346,15 +378,13 @@
                     horasChaves.forEach((hora, index) => {
                         const colIndex = cabecalho.indexOf(hora);
                         if (colIndex !== -1) {
-                            // Soma o valor da coluna específica para este arquivo
                             dadosArquivosCsv[nomeArquivo][index] += parseInt(colunas[colIndex]) || 0;
                         }
                     });
                 }
             }
         }
-        
-        // Agora recalcula o 'realizado' total somando a memória de TODOS os arquivos CSV que já foram enviados
+
         realizado = new Array(horasChaves.length).fill(0);
         for (let arquivo in dadosArquivosCsv) {
             for (let i = 0; i < horasChaves.length; i++) {
@@ -362,11 +392,10 @@
             }
         }
 
-        atualizarDashboard(); 
-        e.target.value = ''; // Reseta input para permitir clicar de novo
+        atualizarDashboard();
+        e.target.value = '';
     }
 
-    // Vinculando o evento aos dois inputs (Modal e Header)
     document.getElementById('fileInputModal').addEventListener('change', processarArquivos);
     document.getElementById('fileInputHeader').addEventListener('change', processarArquivos);
 
@@ -379,7 +408,7 @@
     window.addEventListener('load', ajustarEscala);
 
     function toggleFullscreen() {
-        if (!document.fullscreenElement) { document.documentElement.requestFullscreen(); } 
+        if (!document.fullscreenElement) { document.documentElement.requestFullscreen(); }
         else { document.exitFullscreen(); }
     }
 </script>
